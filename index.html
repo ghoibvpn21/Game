@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Snake Xenzia</title>
+  <style>
+    html, body {
+      margin: 0; padding: 0;
+      background: linear-gradient(135deg, #000, #111);
+      font-family: monospace;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    canvas { display: block; }
+
+    .menu, .score-panel, .controls, .menu-btn, .menu-popup, .skin-popup {
+      position: fixed;
+      z-index: 10;
+    }
+
+    .menu {
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.85);
+      color: #0f0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    .menu button, .menu-popup button {
+      font-size: 18px;
+      padding: 10px 20px;
+      background: #000;
+      border: 2px solid #0f0;
+      color: #0f0;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .menu button:hover, .menu-popup button:hover {
+      background: #0f0;
+      color: #000;
+    }
+
+    .score-panel {
+      top: 10px;
+      left: 10px;
+      color: #0f0;
+      background: rgba(0,0,0,0.5);
+      padding: 5px 10px;
+      border-radius: 8px;
+    }
+
+    .controls {
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: none;
+      grid-template-columns: 80px 80px 80px;
+      gap: 10px;
+      pointer-events: none;
+    }
+
+    .btn {
+      width: 80px;
+      height: 80px;
+      font-size: 30px;
+      color: #0f0;
+      border: 2px solid #0f0;
+      border-radius: 12px;
+      background-color: rgba(0, 255, 0, 0.05);
+      pointer-events: auto;
+      cursor: pointer;
+    }
+
+    .menu-btn {
+      top: 10px;
+      right: 10px;
+      width: 40px;
+      height: 40px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      z-index: 11;
+    }
+
+    .menu-btn::before, .menu-btn::after {
+      content: "";
+      display: block;
+      width: 30px;
+      height: 4px;
+      background: #0f0;
+      margin: 6px auto;
+    }
+
+    .menu-popup {
+      top: 60px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.85);
+      padding: 10px;
+      border: 1px solid #0f0;
+      border-radius: 6px;
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .skin-popup {
+      top: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.85);
+      padding: 10px;
+      border: 1px solid #0f0;
+      border-radius: 6px;
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 12;
+    }
+
+    .skin-popup button {
+      background: #0f0;
+      color: #000;
+      font-weight: bold;
+    }
+
+    .gg-title, .ghoib-title {
+      position: fixed;
+      top: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 36px;
+      font-weight: bold;
+      z-index: 5;
+      display: none;
+      animation: blink 1s infinite;
+    }
+
+    .ghoib-title {
+      top: 60px;
+      font-size: 24px;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; color: #0ff; }
+      50% { opacity: 0.4; color: #f0f; }
+    }
+
+    .eat-effect {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      background: radial-gradient(circle, #fff 30%, transparent);
+      border-radius: 50%;
+      pointer-events: none;
+      animation: pop 0.5s ease-out forwards;
+      z-index: 20;
+    }
+
+    @keyframes pop {
+      0% { transform: scale(1); opacity: 1; }
+      100% { transform: scale(3); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div class="menu" id="mainMenu">
+  <button onclick="startNewGame()">Mulai Baru</button>
+  <button onclick="loadGame()">Lanjutkan</button>
+</div>
+
+<div class="score-panel" id="scorePanel">Score: 0 | High: 0</div>
+
+<div class="controls" id="controls">
+  <div></div>
+  <button class="btn" onclick="snake.changeDirection('Up')">↑</button>
+  <div></div>
+  <button class="btn" onclick="snake.changeDirection('Left')">←</button>
+  <div></div>
+  <button class="btn" onclick="snake.changeDirection('Right')">→</button>
+  <div></div>
+  <button class="btn" onclick="snake.changeDirection('Down')">↓</button>
+  <div></div>
+</div>
+
+<button class="menu-btn" onclick="toggleMenu()"></button>
+
+<div class="menu-popup" id="menuPopup">
+  <button onclick="togglePause()">Pause</button>
+  <button onclick="toggleSkinPopup()">Ganti Skin</button>
+  <button onclick="showMainMenu()">Back</button>
+</div>
+
+<div class="skin-popup" id="skinPopup">
+  <button onclick="changeSkin('green')">Hijau Neon</button>
+  <button onclick="changeSkin('retro')">Retro Biru</button>
+  <button onclick="changeSkin('lava')">Lava Merah</button>
+  <button onclick="changeSkin('rainbow')">Pelangi</button>
+</div>
+
+<div class="gg-title" id="ggText">GG</div>
+<div class="ghoib-title" id="ghoibText">GHOIB GAME</div>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const scorePanel = document.getElementById("scorePanel");
+const mainMenu = document.getElementById("mainMenu");
+const menuPopup = document.getElementById("menuPopup");
+const skinPopup = document.getElementById("skinPopup");
+const controls = document.getElementById("controls");
+let score = 0, highScore = 0, gameOver = false;
+let speed = 0.3, direction = 'Right';
+let skin = 'green';
+let snake, apple;
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+class Snake {
+  constructor(saved = null) {
+    this.body = saved?.body || [{ x: 10, y: 10 }];
+    this.dir = saved?.dir || direction;
+  }
+
+  move() {
+    const head = { ...this.body[0] };
+    if (this.dir === "Up") head.y -= 1;
+    if (this.dir === "Down") head.y += 1;
+    if (this.dir === "Left") head.x -= 1;
+    if (this.dir === "Right") head.x += 1;
+
+    const maxX = Math.floor(canvas.width / 30);
+    const maxY = Math.floor(canvas.height / 30);
+    if (head.x >= maxX) head.x = 0;
+    if (head.x < 0) head.x = maxX - 1;
+    if (head.y >= maxY) head.y = 0;
+    if (head.y < 0) head.y = maxY - 1;
+
+    this.body.unshift(head);
+    if (head.x === apple.x && head.y === apple.y) {
+      score += 10;
+      apple.pickLocation();
+      showEatEffect(head.x * 30, head.y * 30);
+    } else {
+      this.body.pop();
+    }
+  }
+
+  changeDirection(dir) {
+    const opposites = { Up: "Down", Down: "Up", Left: "Right", Right: "Left" };
+    if (dir !== opposites[this.dir]) this.dir = dir;
+  }
+
+  draw() {
+    this.body.forEach((part, i) => {
+      ctx.fillStyle = skin === "rainbow"
+        ? ['#f00','#ff0','#0f0','#0ff','#00f','#f0f'][i % 6]
+        : getSkinColor();
+      ctx.beginPath();
+      ctx.roundRect(part.x * 30, part.y * 30, 28, 28, 10);
+      ctx.fill();
+    });
+  }
+
+  collided() {
+    const [head, ...body] = this.body;
+    return body.some(p => p.x === head.x && p.y === head.y);
+  }
+}
+
+class Apple {
+  constructor() { this.x = 5; this.y = 5; }
+
+  pickLocation() {
+    this.x = Math.floor(Math.random() * canvas.width / 30);
+    this.y = Math.floor(Math.random() * canvas.height / 30);
+  }
+
+  draw() {
+    const x = this.x * 30 + 15, y = this.y * 30 + 15;
+    const gradient = ctx.createRadialGradient(x, y, 5, x, y, 15);
+    gradient.addColorStop(0, "#ffaaaa");
+    gradient.addColorStop(1, "#ff0000");
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(x, y, 12, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#0f0";
+    ctx.fillRect(x - 2, y - 18, 4, 8); // batang apel
+  }
+}
+
+CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+  this.beginPath();
+  this.moveTo(x + r, y);
+  this.arcTo(x + w, y, x + w, y + h, r);
+  this.arcTo(x + w, y + h, x, y + h, r);
+  this.arcTo(x, y + h, x, y, r);
+  this.arcTo(x, y, x + w, y, r);
+  this.closePath();
+};
+
+function getSkinColor() {
+  switch (skin) {
+    case 'green': return '#0f0';
+    case 'retro': return '#0ff';
+    case 'lava': return '#f00';
+    default: return '#0f0';
+  }
+}
+
+function drawScore() {
+  scorePanel.textContent = `Score: ${score} | High: ${highScore}`;
+}
+
+function gameLoop() {
+  if (gameOver) return;
+  setTimeout(() => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    snake.move();
+    if (snake.collided()) {
+      gameOver = true;
+      mainMenu.style.display = "flex";
+      controls.style.display = "none";
+      document.getElementById("ggText").style.display = "none";
+      document.getElementById("ghoibText").style.display = "none";
+      return;
+    }
+    apple.draw();
+    snake.draw();
+    drawScore();
+    requestAnimationFrame(gameLoop);
+  }, 1000 / (10 * speed));
+}
+
+function showEatEffect(x, y) {
+  const el = document.createElement("div");
+  el.className = "eat-effect";
+  el.style.left = `${x + 9}px`;
+  el.style.top = `${y + 9}px`;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 500);
+}
+
+function startNewGame() {
+  mainMenu.style.display = "none";
+  controls.style.display = "grid";
+  document.getElementById("ggText").style.display = "block";
+  document.getElementById("ghoibText").style.display = "block";
+  score = 0;
+  snake = new Snake();
+  apple = new Apple();
+  apple.pickLocation();
+  gameOver = false;
+  gameLoop();
+}
+
+function loadGame() {
+  startNewGame();
+}
+
+function showMainMenu() {
+  mainMenu.style.display = "flex";
+  menuPopup.style.display = "none";
+  controls.style.display = "none";
+}
+
+function toggleMenu() {
+  menuPopup.style.display = menuPopup.style.display === "flex" ? "none" : "flex";
+  skinPopup.style.display = "none";
+}
+
+function toggleSkinPopup() {
+  skinPopup.style.display = skinPopup.style.display === "flex" ? "none" : "flex";
+  menuPopup.style.display = "none";
+}
+
+function changeSkin(s) {
+  skin = s;
+  skinPopup.style.display = "none";
+  menuPopup.style.display = "none";
+}
+
+function togglePause() {
+  gameOver = !gameOver;
+  if (!gameOver) gameLoop();
+  menuPopup.style.display = "none";
+}
+</script>
+</body>
+</html>
