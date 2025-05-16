@@ -14,8 +14,7 @@
     }
     canvas { display: block; }
     .menu, .score-panel, .controls, .menu-btn, .menu-popup, .skin-popup, .level-popup {
-      position: fixed;
-      z-index: 10;
+      position: fixed; z-index: 10;
     }
     .menu {
       top: 0; left: 0; right: 0; bottom: 0;
@@ -41,8 +40,7 @@
       color: #000;
     }
     .score-panel {
-      top: 10px;
-      left: 10px;
+      top: 10px; left: 10px;
       color: #0f0;
       background: rgba(0,0,0,0.5);
       padding: 5px 10px;
@@ -58,8 +56,7 @@
       pointer-events: none;
     }
     .btn {
-      width: 80px;
-      height: 80px;
+      width: 80px; height: 80px;
       font-size: 30px;
       color: #0f0;
       border: 2px solid #0f0;
@@ -69,26 +66,21 @@
       cursor: pointer;
     }
     .menu-btn {
-      top: 10px;
-      right: 10px;
-      width: 40px;
-      height: 40px;
-      background: none;
-      border: none;
+      top: 10px; right: 10px;
+      width: 40px; height: 40px;
+      background: none; border: none;
       cursor: pointer;
       z-index: 11;
     }
     .menu-btn::before, .menu-btn::after {
       content: "";
       display: block;
-      width: 30px;
-      height: 4px;
+      width: 30px; height: 4px;
       background: #0f0;
       margin: 6px auto;
     }
     .menu-popup {
-      top: 60px;
-      right: 10px;
+      top: 60px; right: 10px;
       background: rgba(0, 0, 0, 0.85);
       padding: 10px;
       border: 1px solid #0f0;
@@ -98,8 +90,7 @@
       gap: 10px;
     }
     .skin-popup, .level-popup {
-      top: 10px;
-      right: 60px;
+      top: 10px; right: 60px;
       background: rgba(0, 0, 0, 0.85);
       padding: 10px;
       border: 1px solid #0f0;
@@ -121,23 +112,19 @@
       animation: pulse 1.5s infinite ease-in-out alternate;
     }
     .ghoib-title { top: 60px; font-size: 24px; animation-delay: 0.5s; }
-
     @keyframes pulse {
       0% { transform: translateX(-50%) scale(1); opacity: 1; color: #0ff; }
       100% { transform: translateX(-50%) scale(1.2); opacity: 0.6; color: #f0f; }
     }
-
     .eat-effect {
       position: absolute;
-      width: 30px;
-      height: 30px;
+      width: 30px; height: 30px;
       background: radial-gradient(circle, #fff 30%, transparent);
       border-radius: 50%;
       pointer-events: none;
       animation: pop 0.5s ease-out forwards;
       z-index: 20;
     }
-
     @keyframes pop {
       0% { transform: scale(1); opacity: 1; }
       100% { transform: scale(3); opacity: 0; }
@@ -196,48 +183,44 @@
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
 const bgMusic = document.getElementById("bgMusic");
 const eatSound = document.getElementById("eatSound");
-const pauseBtn = document.getElementById("pauseBtn");
-
 const scorePanel = document.getElementById("scorePanel");
+const pauseBtn = document.getElementById("pauseBtn");
 const mainMenu = document.getElementById("mainMenu");
+const controls = document.getElementById("controls");
 const menuPopup = document.getElementById("menuPopup");
 const skinPopup = document.getElementById("skinPopup");
 const levelPopup = document.getElementById("levelPopup");
-const controls = document.getElementById("controls");
 
 let score = 0;
 let highScore = parseInt(localStorage.getItem("snakeHighScore") || "0");
 let speed = 0.3;
-let direction = 'Right';
 let skin = 'green';
-let gameOver = false;
 let paused = false;
+let gameOver = false;
 let snake, apple;
-
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
 
 class Snake {
   constructor(saved = null) {
     this.body = saved?.body || [{ x: 10, y: 10 }];
-    this.dir = saved?.dir || direction;
+    this.dir = saved?.dir || 'Right';
   }
 
   move() {
     const head = { ...this.body[0] };
-    if (this.dir === "Up") head.y -= 1;
-    if (this.dir === "Down") head.y += 1;
-    if (this.dir === "Left") head.x -= 1;
-    if (this.dir === "Right") head.x += 1;
+    if (this.dir === "Up") head.y--;
+    if (this.dir === "Down") head.y++;
+    if (this.dir === "Left") head.x--;
+    if (this.dir === "Right") head.x++;
 
     const maxX = Math.floor(canvas.width / 30);
     const maxY = Math.floor(canvas.height / 30);
-    if (head.x >= maxX) head.x = 0;
-    if (head.x < 0) head.x = maxX - 1;
-    if (head.y >= maxY) head.y = 0;
-    if (head.y < 0) head.y = maxY - 1;
+    head.x = (head.x + maxX) % maxX;
+    head.y = (head.y + maxY) % maxY;
 
     this.body.unshift(head);
     if (head.x === apple.x && head.y === apple.y) {
@@ -246,7 +229,7 @@ class Snake {
         highScore = score;
         localStorage.setItem("snakeHighScore", highScore);
       }
-      apple.pickLocation();
+      apple.pickLocation(this.body);
       showEatEffect(head.x * 30, head.y * 30);
       eatSound.volume = 0.6;
       eatSound.currentTime = 0;
@@ -262,36 +245,37 @@ class Snake {
   }
 
   draw() {
-    this.body.forEach((part, i) => {
-      ctx.fillStyle = skin === "rainbow"
-        ? `hsl(${(Date.now()/10 + i*20) % 360}, 100%, 60%)`
-        : getSkinColor();
+    this.body.forEach((p, i) => {
+      ctx.fillStyle = skin === "rainbow" ? `hsl(${(Date.now()/10 + i*20)%360}, 100%, 60%)` : getSkinColor();
       ctx.beginPath();
-      ctx.roundRect(part.x * 30, part.y * 30, 28, 28, 10);
+      ctx.roundRect(p.x * 30, p.y * 30, 28, 28, 10);
       ctx.fill();
     });
   }
 
   collided() {
-    const [head, ...body] = this.body;
-    return body.some(p => p.x === head.x && p.y === head.y);
+    const [head, ...rest] = this.body;
+    return rest.some(p => p.x === head.x && p.y === head.y);
   }
 }
 
 class Apple {
   constructor() { this.x = 5; this.y = 5; }
 
-  pickLocation() {
-    this.x = Math.floor(Math.random() * canvas.width / 30);
-    this.y = Math.floor(Math.random() * canvas.height / 30);
+  pickLocation(snakeBody = []) {
+    let maxX = Math.floor(canvas.width / 30);
+    let maxY = Math.floor(canvas.height / 30);
+    do {
+      this.x = Math.floor(Math.random() * maxX);
+      this.y = Math.floor(Math.random() * maxY);
+    } while (snakeBody.some(p => p.x === this.x && p.y === this.y));
   }
 
   draw() {
     const x = this.x * 30 + 15, y = this.y * 30 + 15;
-    const gradient = ctx.createRadialGradient(x, y, 5, x, y, 15);
-    gradient.addColorStop(0, "#ffaaaa");
-    gradient.addColorStop(1, "#ff0000");
-    ctx.fillStyle = gradient;
+    const g = ctx.createRadialGradient(x, y, 5, x, y, 15);
+    g.addColorStop(0, "#ffaaaa"); g.addColorStop(1, "#ff0000");
+    ctx.fillStyle = g;
     ctx.beginPath();
     ctx.arc(x, y, 12, 0, Math.PI * 2);
     ctx.fill();
@@ -311,12 +295,7 @@ CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
 };
 
 function getSkinColor() {
-  switch (skin) {
-    case 'green': return '#fff';
-    case 'retro': return '#0ff';
-    case 'lava': return '#f00';
-    default: return '#fff';
-  }
+  return skin === "retro" ? "#0ff" : skin === "lava" ? "#f00" : "#fff";
 }
 
 function drawScore() {
@@ -330,10 +309,8 @@ function gameLoop() {
     snake.move();
     if (snake.collided()) {
       gameOver = true;
-      mainMenu.style.display = "flex";
       controls.style.display = "none";
-      document.getElementById("ggText").style.display = "none";
-      document.getElementById("ghoibText").style.display = "none";
+      mainMenu.style.display = "flex";
       fadeAudio(bgMusic, 0);
       return;
     }
@@ -342,6 +319,15 @@ function gameLoop() {
     drawScore();
     requestAnimationFrame(gameLoop);
   }, 1000 / (10 * speed));
+}
+
+function showEatEffect(x, y) {
+  const el = document.createElement("div");
+  el.className = "eat-effect";
+  el.style.left = `${x + 9}px`;
+  el.style.top = `${y + 9}px`;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 500);
 }
 
 function fadeAudio(audio, volume) {
@@ -356,15 +342,6 @@ function fadeAudio(audio, volume) {
   }, 50);
 }
 
-function showEatEffect(x, y) {
-  const el = document.createElement("div");
-  el.className = "eat-effect";
-  el.style.left = `${x + 9}px`;
-  el.style.top = `${y + 9}px`;
-  document.body.appendChild(el);
-  setTimeout(() => el.remove(), 500);
-}
-
 function startNewGame() {
   mainMenu.style.display = "none";
   controls.style.display = "grid";
@@ -375,7 +352,7 @@ function startNewGame() {
   pauseBtn.textContent = "Pause";
   snake = new Snake();
   apple = new Apple();
-  apple.pickLocation();
+  apple.pickLocation(snake.body);
   gameOver = false;
   bgMusic.volume = 0;
   bgMusic.currentTime = 0;
@@ -384,48 +361,37 @@ function startNewGame() {
   gameLoop();
 }
 
-function loadGame() {
-  startNewGame();
-}
-
+function loadGame() { startNewGame(); }
 function showMainMenu() {
   mainMenu.style.display = "flex";
   menuPopup.style.display = "none";
   controls.style.display = "none";
   fadeAudio(bgMusic, 0);
 }
-
 function toggleMenu() {
   const isOpen = menuPopup.style.display === "flex";
   menuPopup.style.display = isOpen ? "none" : "flex";
   skinPopup.style.display = "none";
   levelPopup.style.display = "none";
 }
-
 function toggleSkinPopup() {
-  const isOpen = skinPopup.style.display === "flex";
-  skinPopup.style.display = isOpen ? "none" : "flex";
-  levelPopup.style.display = "none";
+  skinPopup.style.display = skinPopup.style.display === "flex" ? "none" : "flex";
   menuPopup.style.display = "none";
+  levelPopup.style.display = "none";
 }
-
 function toggleLevelPopup() {
-  const isOpen = levelPopup.style.display === "flex";
-  levelPopup.style.display = isOpen ? "none" : "flex";
+  levelPopup.style.display = levelPopup.style.display === "flex" ? "none" : "flex";
   skinPopup.style.display = "none";
   menuPopup.style.display = "none";
 }
-
 function changeSkin(s) {
   skin = s;
   skinPopup.style.display = "none";
 }
-
 function setLevel(lv) {
   speed = lv === 1 ? 0.3 : lv === 2 ? 0.6 : 1.0;
   levelPopup.style.display = "none";
 }
-
 function togglePause() {
   paused = !paused;
   pauseBtn.textContent = paused ? "Resume" : "Pause";
